@@ -1,0 +1,228 @@
+using ScriptPortal.Vegas;
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+public class EntryPoint
+{
+    int trackNum = 1;
+    double showSec = 7;
+    double fadeInSec = 3;
+    double fadeOutSec = 1;
+    double lastLength = 1;
+
+    Button okButton = new Button();
+
+    public void FromVegas(Vegas app)
+    {
+        if (ShowForm(app) == DialogResult.OK)
+        {
+            foreach (Track currentTrack in app.Project.Tracks)
+            {
+                if (currentTrack.IsAudio())
+                    continue;
+
+                if (currentTrack.DisplayIndex != trackNum)
+                    continue;
+
+                if (currentTrack.Events.Count > 0)
+                {
+                    for (int i = 0; i < currentTrack.Events.Count; i++)
+                    {
+                        TrackEvent currentEvent = currentTrack.Events[i];
+                        if (!currentEvent.IsVideo())
+                            continue;
+                        currentEvent.Length = new Timecode(showSec * 1000);
+                        if (i >= 1)
+                        {
+                            Timecode endLastEvent = currentTrack.Events[i - 1].End;
+                            currentEvent.Start = endLastEvent;
+                        }
+                    }
+
+
+                    TrackEvent lastEvent = currentTrack.Events[currentTrack.Events.Count - 1];
+
+                    lastEvent.Length = new Timecode(lastLength * 1000);
+
+                    for (int i = 0; i < currentTrack.Events.Count; i++)
+                    {
+
+                        TrackEvent currentEvent = currentTrack.Events[i];
+                        if (!currentEvent.IsVideo())
+                            continue;
+                        currentEvent.End = lastEvent.End;
+
+                        VideoTrack newVT = app.Project.AddVideoTrack();
+                        VideoEvent newVE = currentEvent.Copy(newVT, currentEvent.Start) as VideoEvent;
+
+                        newVE.FadeIn.Length = new Timecode(fadeInSec * 1000);
+                        newVE.FadeOut.Length = new Timecode(fadeOutSec * 1000);
+
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    public DialogResult ShowForm(Vegas app)
+    {
+        Form form = new Form();
+        form.SuspendLayout();
+        form.AutoScaleMode = AutoScaleMode.None;
+        //form.AutoScaleDimensions = new SizeF(1F, 1F);
+        form.FormBorderStyle = FormBorderStyle.FixedToolWindow;
+        form.StartPosition = FormStartPosition.CenterParent;
+        form.MaximizeBox = false;
+        form.MinimizeBox = false;
+        form.HelpButton = false;
+        form.ShowInTaskbar = false;
+        form.Text = "Arrange Clips";
+        form.AutoSize = true;
+        form.AutoSizeMode = AutoSizeMode.GrowOnly;
+
+        TableLayoutPanel layout = new TableLayoutPanel();
+        layout.AutoSize = true;
+        layout.AutoSizeMode = AutoSizeMode.GrowOnly;
+        layout.GrowStyle = TableLayoutPanelGrowStyle.AddRows;
+        layout.Height = 600;
+        layout.ColumnCount = 2;
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
+        form.Controls.Add(layout);
+
+        Label label;
+        NumericUpDown nmTrackNum;
+        NumericUpDown nmShowSec;
+        NumericUpDown nmFadeIn;
+        NumericUpDown nmFadeOut;
+        NumericUpDown nmLastLength;
+
+        label = new Label();
+        label.Text = "Track number";
+        label.AutoSize = true;
+        label.TextAlign = ContentAlignment.MiddleLeft;
+        //label.Margin = new Padding(1, 1, 1, 1);
+        label.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(label);
+        //layout.SetColumnSpan(label, 1);
+
+        nmTrackNum = new NumericUpDown();
+        nmTrackNum.Minimum = 1;
+        nmTrackNum.DecimalPlaces = 0;
+        nmTrackNum.AutoSize = true;
+        nmTrackNum.TextAlign = HorizontalAlignment.Center;
+        //nmShowSec.Margin = new Padding(1, 1, 1, 1);
+        nmTrackNum.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(nmTrackNum);
+
+        label = new Label();
+        label.Text = "Time between clips appear";
+        label.AutoSize = true;
+        label.TextAlign = ContentAlignment.MiddleLeft;
+        //label.Margin = new Padding(1, 1, 1, 1);
+        label.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(label);
+        //layout.SetColumnSpan(label, 1);
+
+        nmShowSec = new NumericUpDown();
+        nmShowSec.Minimum = 0.01M;
+        nmShowSec.DecimalPlaces = 2;
+        nmShowSec.AutoSize = true;
+        nmShowSec.TextAlign = HorizontalAlignment.Center;
+        //nmShowSec.Margin = new Padding(1, 1, 1, 1);
+        nmShowSec.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(nmShowSec);
+
+        label = new Label();
+        label.Text = "Fade In";
+        label.AutoSize = true;
+        label.TextAlign = ContentAlignment.MiddleLeft;
+        //label.Margin = new Padding(1, 1, 1, 1);
+        label.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(label);
+        //layout.SetColumnSpan(label, 1);
+
+        nmFadeIn = new NumericUpDown();
+        nmFadeIn.Minimum = 0.01M;
+        nmFadeIn.DecimalPlaces = 2;
+        nmFadeIn.AutoSize = true;
+        nmFadeIn.TextAlign = HorizontalAlignment.Center;
+        //nmShowSec.Margin = new Padding(1, 1, 1, 1);
+        nmFadeIn.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(nmFadeIn);
+
+        label = new Label();
+        label.Text = "Fade Out";
+        label.AutoSize = true;
+        label.TextAlign = ContentAlignment.MiddleLeft;
+        //label.Margin = new Padding(1, 1, 1, 1);
+        label.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(label);
+        //layout.SetColumnSpan(label, 1);
+
+        nmFadeOut = new NumericUpDown();
+        nmFadeOut.Minimum = 0.01M;
+        nmFadeOut.DecimalPlaces = 2;
+        nmFadeOut.AutoSize = true;
+        nmFadeOut.TextAlign = HorizontalAlignment.Center;
+        //nmShowSec.Margin = new Padding(1, 1, 1, 1);
+        nmFadeOut.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(nmFadeOut);
+
+        label = new Label();
+        label.Text = "last Video Length";
+        label.AutoSize = true;
+        label.TextAlign = ContentAlignment.MiddleLeft;
+        //label.Margin = new Padding(1, 1, 1, 1);
+        label.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(label);
+        //layout.SetColumnSpan(label, 1);
+
+        nmLastLength = new NumericUpDown();
+        nmLastLength.Minimum = 0.01M;
+        nmLastLength.DecimalPlaces = 2;
+        nmLastLength.AutoSize = true;
+        nmLastLength.TextAlign = HorizontalAlignment.Center;
+        //nmShowSec.Margin = new Padding(1, 1, 1, 1);
+        nmLastLength.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        layout.Controls.Add(nmLastLength);
+
+        FlowLayoutPanel buttonPanel = new FlowLayoutPanel();
+        buttonPanel.FlowDirection = FlowDirection.RightToLeft;
+        buttonPanel.Size = Size.Empty;
+        buttonPanel.AutoSize = true;
+        buttonPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        //buttonPanel.Margin = new Padding(1, 1, 1, 1);
+        buttonPanel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        layout.Controls.Add(buttonPanel);
+        layout.SetColumnSpan(buttonPanel, 2);
+
+        Button cancelButton = new Button();
+        cancelButton.Text = "Cancel";
+        cancelButton.FlatStyle = FlatStyle.System;
+        cancelButton.DialogResult = DialogResult.Cancel;
+        buttonPanel.Controls.Add(cancelButton);
+        form.CancelButton = cancelButton;
+
+        okButton.Text = "OK";
+        okButton.FlatStyle = FlatStyle.System;
+        okButton.DialogResult = DialogResult.OK;
+        buttonPanel.Controls.Add(okButton);
+        form.AcceptButton = okButton;
+
+        DialogResult result = form.ShowDialog(app.MainWindow);
+
+        if (DialogResult.OK == result)
+        {
+            trackNum = (int)nmTrackNum.Value;
+            showSec = (double)nmShowSec.Value;
+            fadeInSec = (double)nmFadeIn.Value;
+            fadeOutSec = (double)nmFadeOut.Value;
+            lastLength = (double)nmLastLength.Value;
+        }
+        return result;
+    }
+}
